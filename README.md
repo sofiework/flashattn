@@ -169,9 +169,9 @@ This project consists of 7 tasks and is worth 15 points. Tasks 3–7 are optiona
 This is the first release of this project, and we understand it can be quite challenging. To accommodate this, we have structured the grading as follows:
 
 - **Task 1** is worth **5 points** and **Task 2** is worth **10 points**. These two tasks are **required** and make up the full 15 points for this project.
-- **Tasks 3–7** are **optional** and worth a combined **15 extra credit points**. These extra points will be applied toward **Project 5**, effectively allowing you to skip some parts of Project 5 (20 points) if you earn the full amount.
+- **Tasks 3–7** are **optional** and worth a combined **15 extra credit points**. These extra points will be applied **ONLY** toward **Project 5**, effectively allowing you to skip some parts of Project 5 (20 points) if you earn the full amount.
 
-In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it.
+In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it. The combined total points for projects 4 and 5 are capped at 35 (15 and 20.)
 
 ---
 
