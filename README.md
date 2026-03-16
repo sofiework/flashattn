@@ -185,7 +185,7 @@ Here are the steps to follow:
 
 1.  **Split Heads**: Use the `torch.Tensor.view()` method to reshape the input `q`, `k`, and `v` tensors. You will change their dimensions from `[batch_size, seq_len, hidden_dim]` to `[batch_size, seq_len, num_heads, head_dim]` to split the `hidden_dim` into multiple attention heads.
 
-2.  **Transpose**: Use the `.transpose()` method to swap the sequence length and head dimensions. This changes the tensor shape to `[batch_size, num_heads, seq_len, head_dim]`, which is the standard layout for batched attention computation.
+2.  **Transpose**: Use the `.transpose()` method to swap the sequence length and number of heads. This changes the tensor shape to `[batch_size, num_heads, seq_len, head_dim]`, which is the standard layout for batched attention computation.
 
 3.  **Compute Scores**: Compute the scaled dot-product attention scores. This is done by performing a matrix multiplication of $Q$ and $K^T$, and then scaling by the square root of the head dimension ($d_k$). You can achieve this using the `@` operator for matrix multiplication and `math.sqrt()` for scaling. The full operation is $QK^T / \sqrt{d}$.
 
