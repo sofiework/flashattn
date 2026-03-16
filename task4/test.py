@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
 import time
+from tqdm import tqdm
+from task2.attention import CustomSelfAttention
 from .attention import CustomFlashAttention
 
 NUM_WARMUP = 3
@@ -21,7 +23,14 @@ def test_attention(causal=False):
     w_q, w_k, w_v = all_param["in_proj_weight"].chunk(3)
     w_o = all_param["out_proj.weight"]
 
-    custom_self_attention = (
+    naive_attention = (
+        CustomSelfAttention(w_q, w_k, w_v, w_o, hidden_dim, num_heads)
+        .to(torch.float)
+        .to("cuda")
+        .eval()
+    )
+
+    flash_attention = (
         CustomFlashAttention(w_q, w_k, w_v, w_o, hidden_dim, num_heads)
         .to(torch.float)
         .to("cuda")
@@ -29,100 +38,87 @@ def test_attention(causal=False):
     )
 
     batch_size = 4
-    seq_len = 128
+    seq_len = 1024
 
     with torch.no_grad():
         x = torch.randn(batch_size, seq_len, hidden_dim).to(torch.float).to("cuda")
 
-        if causal:
-            attn_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to("cuda")
-        else:
-            attn_mask = None
-
         # Warmup
         for _ in range(NUM_WARMUP):
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
-            _ = custom_self_attention(x, causal=causal)
+            _ = naive_attention(x, causal=causal)
+            _ = flash_attention(x, causal=causal)
         torch.cuda.synchronize()
 
         # Correctness check
-        torch_out, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
-        custom_out = custom_self_attention(x, causal=causal)
+        naive_out = naive_attention(x, causal=causal)
+        flash_out = flash_attention(x, causal=causal)
         torch.cuda.synchronize()
-        assert torch.allclose(torch_out, custom_out, atol=1e-6)
+        assert torch.allclose(naive_out, flash_out, atol=1e-6)
 
-        # Benchmark torch
-        torch_times = []
-        for _ in range(NUM_RUNS):
+        # Benchmark naive (task2) vs flash (task4)
+        naive_times = []
+        for _ in tqdm(range(NUM_RUNS), desc="Naive (small)"):
             torch.cuda.synchronize()
             start_time = time.time()
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
+            _ = naive_attention(x, causal=causal)
             torch.cuda.synchronize()
-            torch_times.append(time.time() - start_time)
+            naive_times.append(time.time() - start_time)
 
-        # Benchmark custom
-        custom_times = []
-        for _ in range(NUM_RUNS):
+        flash_times = []
+        for _ in tqdm(range(NUM_RUNS), desc="Flash (small)"):
             torch.cuda.synchronize()
             start_time = time.time()
-            _ = custom_self_attention(x, causal=causal)
+            _ = flash_attention(x, causal=causal)
             torch.cuda.synchronize()
-            custom_times.append(time.time() - start_time)
+            flash_times.append(time.time() - start_time)
 
-        torch_time = sorted(torch_times)[NUM_RUNS // 2]
-        custom_time = sorted(custom_times)[NUM_RUNS // 2]
+        naive_time = sorted(naive_times)[NUM_RUNS // 2]
+        flash_time = sorted(flash_times)[NUM_RUNS // 2]
 
         print(f"{'' if causal else 'Non-'}Causal Self-Attention: batch_size = {batch_size}, seq_len = {seq_len}")
-        print(f"Torch time (ms): {torch_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
-        print(f"Speedup: {torch_time / custom_time :.2f}")
+        print(f"Naive time (ms): {naive_time * 1000 :.2f}, Flash time (ms): {flash_time * 1000 :.2f}")
+        print(f"Speedup: {naive_time / flash_time :.2f}")
 
-    batch_size = 64
     seq_len = 4096
 
     with torch.no_grad():
         x = torch.randn(batch_size, seq_len, hidden_dim).to(torch.float).to("cuda")
 
-        if causal:
-            attn_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to("cuda")
-        else:
-            attn_mask = None
-
         # Warmup
         for _ in range(NUM_WARMUP):
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
-            _ = custom_self_attention(x, causal=causal)
+            _ = naive_attention(x, causal=causal)
+            _ = flash_attention(x, causal=causal)
         torch.cuda.synchronize()
 
         # Correctness check
-        torch_out, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
-        custom_out = custom_self_attention(x, causal=causal)
+        naive_out = naive_attention(x, causal=causal)
+        flash_out = flash_attention(x, causal=causal)
         torch.cuda.synchronize()
-        assert torch.allclose(torch_out, custom_out, atol=1e-6)
+        assert torch.allclose(naive_out, flash_out, atol=1e-6)
 
-        # Benchmark torch
-        torch_times = []
-        for _ in range(NUM_RUNS):
+        # Benchmark naive (task2) vs flash (task4)
+        naive_times = []
+        for _ in tqdm(range(NUM_RUNS), desc="Naive (large)"):
             torch.cuda.synchronize()
             start_time = time.time()
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
+            _ = naive_attention(x, causal=causal)
             torch.cuda.synchronize()
-            torch_times.append(time.time() - start_time)
+            naive_times.append(time.time() - start_time)
 
-        # Benchmark custom
-        custom_times = []
-        for _ in range(NUM_RUNS):
+        flash_times = []
+        for _ in tqdm(range(NUM_RUNS), desc="Flash (large)"):
             torch.cuda.synchronize()
             start_time = time.time()
-            _ = custom_self_attention(x, causal=causal)
+            _ = flash_attention(x, causal=causal)
             torch.cuda.synchronize()
-            custom_times.append(time.time() - start_time)
+            flash_times.append(time.time() - start_time)
 
-        torch_time = sorted(torch_times)[NUM_RUNS // 2]
-        custom_time = sorted(custom_times)[NUM_RUNS // 2]
+        naive_time = sorted(naive_times)[NUM_RUNS // 2]
+        flash_time = sorted(flash_times)[NUM_RUNS // 2]
 
         print(f"{'' if causal else 'Non-'}Causal Self-Attention: batch_size = {batch_size}, seq_len = {seq_len}")
-        print(f"Torch time (ms): {torch_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
-        print(f"Speedup: {torch_time / custom_time :.2f}")
+        print(f"Naive time (ms): {naive_time * 1000 :.2f}, Flash time (ms): {flash_time * 1000 :.2f}")
+        print(f"Speedup: {naive_time / flash_time :.2f}")
 
     if causal:
         print("Causal Self-Attention test passed!")

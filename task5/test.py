@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import time
 from tqdm import tqdm
-
+from task2.attention import CustomSelfAttention
 from .attention import CustomFlashAttention
 
 NUM_WARMUP = 3
@@ -24,6 +24,13 @@ def test_attention(causal=False):
     w_q, w_k, w_v = all_param["in_proj_weight"].chunk(3)
     w_o = all_param["out_proj.weight"]
 
+    naive_attention = (
+        CustomSelfAttention(w_q, w_k, w_v, w_o, hidden_dim, num_heads)
+        .to(torch.float)
+        .to("cuda")
+        .eval()
+    )
+
     custom_self_attention = (
         CustomFlashAttention(w_q, w_k, w_v, w_o, hidden_dim, num_heads)
         .to(torch.float)
@@ -39,82 +46,74 @@ def test_attention(causal=False):
         k_cache = torch.zeros(batch_size, max_seq_len, hidden_dim).to(torch.float).to("cuda")
         v_cache = torch.zeros(batch_size, max_seq_len, hidden_dim).to(torch.float).to("cuda")
 
-        if causal:
-            attn_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to("cuda")
-        else:
-            attn_mask = None
-
         # Warmup
         for _ in range(NUM_WARMUP):
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
+            _ = naive_attention(x, causal=causal)
             _ = custom_self_attention(x, kv_cache=(k_cache, v_cache), current_pos=0, causal=causal)
         torch.cuda.synchronize()
 
         # Correctness check
-        torch_out, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
+        naive_out = naive_attention(x, causal=causal)
         custom_out = custom_self_attention(x, kv_cache=(k_cache, v_cache), current_pos=0, causal=causal)
         torch.cuda.synchronize()
-        assert torch.allclose(torch_out, custom_out, atol=1e-6), "Torch and custom prefill outputs do not match"
+        assert torch.allclose(naive_out, custom_out, atol=1e-6), "Naive and custom prefill outputs do not match"
 
-        # Benchmark prefill (torch)
-        torch_times = []
-        for _ in range(NUM_RUNS):
+        # Benchmark prefill (naive)
+        naive_times = []
+        for _ in tqdm(range(NUM_RUNS), desc="Naive prefill"):
             torch.cuda.synchronize()
             start_time = time.time()
-            _, _ = torch_self_attention(x, x, x, need_weights=False, attn_mask=attn_mask)
+            _ = naive_attention(x, causal=causal)
             torch.cuda.synchronize()
-            torch_times.append(time.time() - start_time)
+            naive_times.append(time.time() - start_time)
 
         # Benchmark prefill (custom)
         custom_times = []
-        for _ in range(NUM_RUNS):
+        for _ in tqdm(range(NUM_RUNS), desc="Custom prefill"):
             torch.cuda.synchronize()
             start_time = time.time()
             _ = custom_self_attention(x, kv_cache=(k_cache, v_cache), current_pos=0, causal=causal)
             torch.cuda.synchronize()
             custom_times.append(time.time() - start_time)
 
-        torch_time = sorted(torch_times)[NUM_RUNS // 2]
+        naive_time = sorted(naive_times)[NUM_RUNS // 2]
         custom_time = sorted(custom_times)[NUM_RUNS // 2]
 
         print(f"{'' if causal else 'Non-'}Causal Self-Attention Prefill")
-        print(f"Torch time (ms): {torch_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
-        print(f"Speedup on time to first token (TTFT): {torch_time / custom_time :.2f}")
+        print(f"Naive time (ms): {naive_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
+        print(f"Speedup on time to first token (TTFT): {naive_time / custom_time :.2f}")
 
         all_tokens = x
 
-        torch_times = []
+        naive_times = []
         custom_times = []
 
         for i in tqdm(range(101), desc="Decode"):
-            new_token = torch_out[:, -1:, :]
+            new_token = custom_out[:, -1:, :]
             all_tokens = torch.cat([all_tokens, new_token], dim=1)
-
-            if causal:
-                attn_mask = torch.triu(torch.ones(seq_len + i + 1, seq_len + i + 1), diagonal=1).bool().to("cuda")
 
             torch.cuda.synchronize()
             start_time = time.time()
-            torch_out, _ = torch_self_attention(all_tokens, all_tokens, all_tokens, need_weights=False, attn_mask=attn_mask)
+            naive_out = naive_attention(all_tokens, causal=causal)
             torch.cuda.synchronize()
-            torch_time = time.time() - start_time
+            naive_time = time.time() - start_time
             start_time = time.time()
             custom_out = custom_self_attention(new_token, kv_cache=(k_cache, v_cache), decode=True, current_pos=seq_len + i, causal=causal)
             torch.cuda.synchronize()
             custom_time = time.time() - start_time
 
-            assert torch.allclose(torch_out[:, -1:, :], custom_out[:, -1:, :], atol=1e-6), "Torch and custom decode outputs do not match at step %d" % (i + 1)
+            assert torch.allclose(naive_out[:, -1:, :], custom_out[:, -1:, :], atol=1e-6), "Naive and custom decode outputs do not match at step %d" % (i + 1)
 
-            torch_times.append(torch_time)
+            naive_times.append(naive_time)
             custom_times.append(custom_time)
 
         # Remove the first iteration to exclude warmup effects, take median
-        torch_time = sorted(torch_times[1:])[len(torch_times[1:]) // 2]
+        naive_time = sorted(naive_times[1:])[len(naive_times[1:]) // 2]
         custom_time = sorted(custom_times[1:])[len(custom_times[1:]) // 2]
 
-        print(f"{'' if causal else 'Non-'}Causal Self-Attention Decode ({len(torch_times) - 1} tokens)")
-        print(f"Torch time (ms): {torch_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
-        print(f"Speedup on time between tokens (TBT): {torch_time / custom_time :.2f}")
+        print(f"{'' if causal else 'Non-'}Causal Self-Attention Decode ({len(naive_times) - 1} tokens)")
+        print(f"Naive time (ms): {naive_time * 1000 :.2f}, Custom time (ms): {custom_time * 1000 :.2f}")
+        print(f"Speedup on time between tokens (TBT): {naive_time / custom_time :.2f}")
 
     if causal:
         print("Causal Self-Attention test passed!")

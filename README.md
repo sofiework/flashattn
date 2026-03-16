@@ -1,14 +1,12 @@
-# CS 8803 GPU Project 4: Implementing a self-attention kernel in CUDA
+# CS 7295 GPU Project 4: Implementing a self-attention kernel in CUDA
 
 ## Introduction
 
-Large Language Models (LLMs) are being widely used across numerous applications. The key model architecture powering these LLMs is the Transformer, which relies on a fundamental component known as the self-attention operation.
+Large Language Models (LLMs) are being widely used across numerous applications. The key model architecture powering these LLMs is the Transformer, which relies on a fundamental component known as the self-attention operation. In this project, we will delve into the mechanics of how the attention operation works. The primary goal is to implement a highly optimized CUDA kernel for this operation, specifically targeting the FlashAttention algorithm.
 
-In this project, we will delve into the mechanics of how the attention operation works. The primary goal is to implement a highly optimized CUDA kernel for this operation, specifically targeting the FlashAttention algorithm.
+## Background
 
-Project introduction in Google slides -- [link](https://docs.google.com/presentation/d/1AwTX9vLirAkPHdfcWfKWQP-TzIyrX8kPA_t4YHKID6o/edit?usp=sharing)
-
-## Self-attention
+### Self-attention
 
 Attention is a powerful operation first introduced in the "Attention Is All You Need" paper [link](https://arxiv.org/abs/1706.03762). The basic operation defines a relationship between three matrices: **Query (Q)**, **Key (K)**, and **Value (V)**. The output is calculated using the following formula:
 
@@ -35,13 +33,13 @@ For a better visual and conceptual understanding of self-attention, refer to the
 * [Another video from Welch Labs](https://youtu.be/0VLAoVGf_74?si=jMbV7i0ep0DSGR6a)
 * [FlashAttention V1 Deep Dive By Google Engineer | Fast and Memory-Efficient LLM Training](https://www.youtube.com/watch?v=_941CUKbL6A)
 
-## Causal attention
+### Causal attention
 
 In many Transformer models, such as those used for text generation, we must ensure that tokens can only attend to **previous tokens** in the sequence. This is achieved by applying a **causal mask** (also known as a look-ahead mask) to the score matrix ($QK^T$).
 
 This mask is applied to the score matrix *before* the softmax operation. By setting all elements corresponding to future tokens to negative infinity, we ensure that a token at a given position cannot "see" or attend to any tokens that come after it.
 
-## Multi-headed attention (MHA)
+### Multi-headed attention (MHA)
 
 To allow the model to learn richer representations, we want each token to attend to other tokens in multiple contexts or "representation subspaces." This is the goal of **Multi-headed Attention (MHA)**, which runs multiple self-attention operations in parallel.
 
@@ -65,24 +63,24 @@ $$
 
 It is important to note that while this architecture is "Multi-head," all $h$ heads can be computed efficiently in parallel within a single, large batched matrix multiplication (BMM), which is key to its performance on GPUs.
 
-## Setup
+## Environment Setup
 
 Follow these instructions to set up the project environment, especially if you are working on the ICE cluster.
 
-> **Important:** We strongly recommend working on the **ICE cluster** with the provided H100 GPUs. Local GPU environments (especially newer consumer GPUs) may have driver compatibility issues, and debugging tools like `cuda-gdb` and `compute-sanitizer` may not work correctly on all local setups. The ICE cluster is the officially supported environment for this project.
+> **Important:** We strongly recommend working on the **ICE cluster** with the provided GPUs. Local GPU environments (especially newer consumer GPUs) may have driver compatibility issues, and debugging tools like `cuda-gdb` and `compute-sanitizer` may not work correctly on all local setups. The ICE cluster is the officially supported environment for this project.
 
 ### 0. Allocate GPU Resources
 
 First, allocate an interactive session.
 
 **From the command line (via SSH):**
-A typical allocation request for one H100 GPU, 8 CPUs, and 128GB of memory for 4 hours looks like this:
+A typical allocation request for one GPU, 8 CPUs, and 128GB of memory for 4 hours looks like this:
 
 ```bash
-salloc --gres=gpu:h100 --cpus-per-task=8 --mem=128G --time=4:00:00
+salloc --gres=gpu:<gpu_name> --cpus-per-task=8 --mem=128G --time=4:00:00
 ```
 
-Feel free to allocate other GPUs if all H100s in PACE are too busy. 
+Feel free to allocate other GPUs (rtx_6000, v100, a100, l40s, ...) if the latest GPUs (H100s) in PACE are too busy. 
 
 **From the web:**
 Alternatively, you can use the Open OnDemand website to request GPU allocation.
@@ -137,6 +135,9 @@ source .venv/bin/activate
 
 # Install the required libraries 
 uv pip install --no-cache-dir torch numpy transformers tqdm
+
+# Load CUDA module (Should be <=12.8)
+module load cuda/12.6.1
 ```
 
 ### 4. For subsequent PACE logins
@@ -144,12 +145,37 @@ uv pip install --no-cache-dir torch numpy transformers tqdm
 For any future sessions after you log out and log back into PACE, you only need to re-activate the virtual environment to get started:
 
 ```bash
+module load uv
+module load cuda/12.6.1
 source .venv/bin/activate
 ```
 
 ## Tasks
 
-### Task 1 (2 pts)
+This project consists of 7 tasks and is worth 15 points. Tasks 3–7 are optional extra credit worth up to 15 additional points (see [Grading Policy](#grading-policy-for-spring-2026) below).
+
+| Task | Points | Topic | Description |
+|------|--------|-------|-------------|
+| Task 1 | 5 pts | Naive Self-Attention (PyTorch) | Implement a naive, non-optimized multi-headed self-attention operation in PyTorch |
+| Task 2 | 10 pts | Naive Self-Attention (CUDA) | Implement softmax, GEMM_NT, GEMM_NN kernels and assemble them into a full attention operation |
+| Task 3 | 3 pts (extra credit) | FlashAttention 2 (PyTorch) | Implement the FlashAttention-2 algorithm (Algorithm 1) in PyTorch using tiled computation |
+| Task 4 | 4 pts (extra credit) | FlashAttention (CUDA) | Translate the tiled FlashAttention logic into a single fused CUDA kernel |
+| Task 5 | 4 pts (extra credit) | Decode Kernel + KV Cache | Implement KV cache update and a specialized FlashAttention decode kernel for token generation |
+| Task 6 | 3 pts (extra credit) | End-to-End LLM Inference | Build a complete inference pipeline handling both prefill and decode phases |
+| Task 7 | 1 pt (extra credit)  | GPT-2 Demo | Run and verify your custom kernels on a real GPT-2 model from Hugging Face |
+
+### Grading Policy for Spring 2026
+
+This is the first release of this project, and we understand it can be quite challenging. To accommodate this, we have structured the grading as follows:
+
+- **Task 1** is worth **5 points** and **Task 2** is worth **10 points**. These two tasks are **required** and make up the full 15 points for this project.
+- **Tasks 3–7** are **optional** and worth a combined **15 extra credit points**. These extra points will be applied toward **Project 5**, effectively allowing you to skip some parts of Project 5 (20 points) if you earn the full amount.
+
+In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it.
+
+---
+
+### Task 1 (5 pts)
 
 Your first task is to implement a naive, non-optimized self-attention operation in PyTorch. This will help you become familiar with the multi-headed self-attention mechanism.
 
@@ -178,15 +204,31 @@ Once you have completed your implementation, please read through the test code i
 python -m task1.test
 ```
 
+> Specify the device with `device="cuda"` when creating a tensor. `.to("cuda")` is another way of doing this, but it involves duplicate data in CPU and `cudaMemcpy` to move it to GPU, so it's inefficient. 
+
 ---
 
-### Task 2 (3 pts)
+### Task 2 (10 pts)
 
 In this task, you will implement a naive self-attention operation using a combination of PyTorch and your own custom **CUDA kernels**.
 
 While we will continue to use the PyTorch framework for high-level evaluation, the core computations will be replaced by your CUDA code. These kernels will be bound to Python, allowing them to be called directly from the `attention.py` script instead of using standard PyTorch tensor operations. Please examine the `forward()` method to understand how this Python-CUDA binding is structured.
 
 Your specific task is to complete the **`attention_kernel.cu`** file by implementing the following components.
+
+**Kernel Pointer Shapes Reference:** Since CUDA kernels receive raw `float*` pointers (no PyTorch shape metadata), here are the tensor layouts. All tensors are row-major and contiguous.
+
+| Kernel | Pointer | Logical Shape | Stride Between Batches |
+|--------|---------|---------------|----------------------|
+| `softmax_kernel_batched` | `inp`, `outp` | `(num_batch_heads, NUM_ROW, NUM_COL)` | `NUM_ROW * NUM_COL` |
+| `GEMM_NT_kernel_batched` | `a_mat` | `(num_batch_heads, M, K)` | `M * K` |
+| | `b_mat` | `(num_batch_heads, N, K)` — note: `N` rows of `K` cols, transposed during multiply | `N * K` |
+| | `out_mat` | `(num_batch_heads, M, N)` | `M * N` |
+| `GEMM_NN_kernel_batched` | `a_mat` | `(num_batch_heads, M, K)` | `M * K` |
+| | `b_mat` | `(num_batch_heads, K, N)` | `K * N` |
+| | `out_mat` | `(num_batch_heads, M, N)` | `M * N` |
+
+The batch dimension is mapped to `blockIdx.z` in all kernels.
 
 Steps to Follow:
 
@@ -206,6 +248,9 @@ Steps to Follow:
     > **Note on Matrix Layout:** Our `N` (Normal) and `T` (Transposed) notation differs from the cuBLAS convention. In PyTorch and our CUDA implementation, matrices are **row-major** by default. Therefore, `N` signifies a row-major matrix, and `T` signifies a column-major (transposed row-major) matrix.
 
     For the implementation, you must use the standard **tiled-GEMM** approach (as you learned in Project 1). This involves using shared memory to stage tiles of the input matrices, which significantly reduces global memory bandwidth and improves performance. Pay close attention to the test code to determine how batching is handled in the kernel launch parameters.
+
+> [!IMPORTANT]
+> In the kernel grid configuration, **`blockIdx.x` corresponds to the column (N) dimension and `blockIdx.y` corresponds to the row (M) dimension**. This ordering ensures that consecutive threads (adjacent `threadIdx.x`) access consecutive columns in memory, enabling coalesced memory access for row-major matrices. The batch dimension is mapped to `blockIdx.z` in all kernels.
 
 3.  **Attention Computation**
     Finally, you will assemble the full operation inside the `custom_attention()` host function in `attention_kernel.cu`. You must call your newly implemented kernels in the correct sequence.
@@ -242,7 +287,7 @@ python -m task2.test --attention
 
 ---
 
-### Task 3 (3 pts)
+### Task 3 (3 pts, extra credit)
 
 Now, you will implement the **FlashAttention 2** algorithm in PyTorch. This task is similar in spirit to Task 1 (as it's a PyTorch-only implementation), but the logic is significantly more complex. Your goal here is to understand and implement the attention operation in a **tiled manner**, which is the key to its efficiency.
 
@@ -260,8 +305,8 @@ Here are a few notes about the Algorithm:
 
   * The Python version of FlashAttention-2 mirrors the algorithmic structure of the CUDA kernel, including **an outer loop over each head and two inner loops over Q and KV tiles**. In CUDA, this outer loop is parallelized across thread blocks, but in Python, it must run sequentially. This implementation is intentionally not optimized for speed; it may even run slower than naive attention due to additional kernel launches. Don't focus on performance for now — the intention of this task is to illustrate the tiling, blockwise softmax, and streaming logic, making the transition to writing CUDA kernels clearer.
 
-> **Important Typo in Paper\!**
->
+> [!IMPORTANT]
+> **Typo in Paper!**
 > There is a well-known typo in Algorithm 1 of the original paper. Please refer to [this GitHub issue](https://github.com/Dao-AILab/flash-attention/issues/991) for the correction.
 
 **Tips for PyTorch Implementation:** The notation $\mathrm{diag}(v)A$ on lines 10 and 12 may look confusing. This represents a diagonal matrix (formed from vector $v$) multiplied by a dense matrix $A$. However, if you think about it closely, this is simply an element-wise multiplication per row. This is very easy to implement in PyTorch using broadcasting.
@@ -277,13 +322,22 @@ python -m task3.test
 
 ---
 
-### Task 4 (4 pts)
+### Task 4 (4 pts, extra credit)
 
 This is the most important task. You will now implement the full **FlashAttention** algorithm in PyTorch + CUDA.
 
 Your goal is to translate the tiled logic you developed in Task 3 (the PyTorch FlashAttention-2 algorithm) into a single, high-performance CUDA kernel. This fused kernel will perform the entire attention computation (GEMMs, masking, softmax, and output GEMM) in one pass, using tiling to avoid materializing the large $N \times N$ matrices in global memory.
 
 You must use the pre-defined shared memory arrays to store blocks of Q, K, and V. You can assume for your implementation that the maximum `head_dim` will be 128.
+
+**Kernel Pointer Shapes Reference:** The host function reshapes the input tensors before passing them to your kernel. All pointers are row-major and contiguous.
+
+| Pointer | Logical Shape | Stride Between Batch-Heads |
+|---------|---------------|---------------------------|
+| `q`, `k`, `v` | `(batch_size * num_heads, seq_len, head_dim)` | `seq_len * head_dim` |
+| `out` | `(batch_size * num_heads, seq_len, head_dim)` | `seq_len * head_dim` |
+
+To index element `(bh, row, col)`: `ptr[bh * seq_len * head_dim + row * head_dim + col]`.
 
 A critical part of this task is performance tuning. In the `custom_flash_attention()` host function, you must experiment with and **tune the tile sizes** (`B_r` and `B_c`, the block sizes for rows and columns) to find the configuration that achieves the best performance on your GPU.
 
@@ -301,15 +355,15 @@ Then, run the test and benchmarking script:
 python -m task4.test
 ```
 
-The test code will verify the correctness of your output and then compare the performance of your custom FlashAttention kernel against the naive `torch.nn.MultiheadAttention` implementation.
+The test code will verify the correctness of your output and then compare the performance of your custom FlashAttention kernel against your naive CUDA self-attention implementation from Task 2.
 
-**Reporting Your Results**: The score for this task will be partly based on the speedup you achieve. **You must report the 4 speedup numbers** from the test script in the `Results.md` file.
+**Grading:** Your grade for this task will partly depend on the speedup you achieve. The speedup is measured on Vocareum (our GPU autograding system), but we will not set the bar too strictly — correctness is the priority here. Note that the GPU on ICE and Vocareum may differ, so achieving the same speedup on both machines may not always be straightforward.
 
-**Expected speedup ranges (on H100):** As a rough reference, a correct implementation should achieve approximately **2-3x** speedup for the small configuration (batch=4, seq=128) and **7-8x** for the large configuration (batch=64, seq=4096) in the non-causal case. Causal speedups will be lower (~1.5-2x). If your numbers are significantly outside these ranges, double-check your kernel for correctness or tile size tuning.
+**Expected speedup ranges (on H100):** As a rough reference, a correct implementation should achieve approximately **1.0-1.1x** speedup for the small configuration (batch=4, seq=1024) and **1.3-1.9x** for the large configuration (batch=4, seq=4096) in both non-causal / causal cases. The speedup may vary per GPU, but the trend should be similar. If your numbers are significantly outside these ranges, double-check your kernel for correctness or adjust the tile size.
 
 ---
 
-### Task 5 (4 pts)
+### Task 5 (4 pts, extra credit)
 
 This task focuses on the second phase of LLM inference: **token generation (decode)**, and how to optimize it using a **KV Cache**.
 
@@ -331,6 +385,18 @@ This is much faster, but we still need the Key (K) and Value (V) matrices from a
 **Your Task**
 
 Go through `attention.py` and `test.py` to understand the new workflow. You will see that it first generates Q, K, and V. Then, it uses a CUDA kernel to **update** (append) the newest K and V vectors into the KV cache. Finally, it runs a new **decode kernel** using the single new Q and the *entire* K and V from the cache.
+
+**Kernel Pointer Shapes Reference:** All pointers are row-major and contiguous.
+
+| Kernel | Pointer | Logical Shape | Notes |
+|--------|---------|---------------|-------|
+| `update_cache_kernel` | `k_cache`, `v_cache` | `(batch_size, max_seq_len, hidden_dim)` | Pre-allocated cache |
+| | `k`, `v` | `(batch_size, 1, hidden_dim)` | New token's K/V (squeezed to 2D) |
+| `flash_attention_decode_kernel` | `q` | `(batch_size * num_heads, 1, head_dim)` | Single query token |
+| | `k`, `v` | `(batch_size * num_heads, seq_len, head_dim)` | Full cached KV |
+| | `out` | `(batch_size * num_heads, 1, head_dim)` | Single output token |
+
+Note that `update_cache_kernel` operates on the **full `hidden_dim`** (before head splitting), while `flash_attention_decode_kernel` operates **per-head** on `head_dim` (after the host function splits heads).
 
 **Step 1: Implement `update_cache_kernel()`**
 
@@ -355,6 +421,8 @@ After implementing both kernels, you will be able to run `test.py`. This test wi
 
 Again, try **tuning the tile size** (`B_r` and `B_c`) in your decode kernel for the best performance. Be aware that a tile size that is too large may blow up the shared memory.
 
+> **Performance Hint:** In the decode kernel, you may need to perform cross-thread reductions (e.g., computing a global max or sum from per-thread partial results). A naive approach where a single thread loops over all partial values is `O(N)`. A **parallel tree reduction** brings this down to `O(log N)` steps by having threads cooperatively halve the problem size at each step. This is a well-known CUDA pattern — see the [NVIDIA parallel reduction whitepaper](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf) for details.
+
 **Compile and run the test:**
 
 ```bash
@@ -365,7 +433,11 @@ python -m task5.compile
 python -m task5.test
 ```
 
-The test script will compare the performance of your decode kernel. **Please report the speedup numbers in `Results.md`**.
+The test script will compare the performance of your FlashAttention prefill and decode kernels against your naive CUDA self-attention from Task 2.
+
+**Grading:** Your grade for this task will partly depend on the speedup you achieve. The speedup is measured on Vocareum, but we will not set the bar too strictly — correctness is the priority here. Note that the GPU on ICE and Vocareum may differ, so achieving the same speedup on both machines may not always be straightforward.
+
+**Expected speedup ranges (on H100):** As a rough reference, a correct implementation should achieve approximately **30-80x** speedup for the TBT (time between token) metric. The speedup primarily results from caching the KV's, rather than recomputing them at each decoding step. If your numbers are significantly outside these ranges, double-check your kernel for correctness or adjust the tile size.
 
 **(Optional) Optimizing the Decode Kernel**
 
@@ -373,7 +445,7 @@ Explore performance improvements to the decode stage by implementing a chunked F
 
 ---
 
-### Task 6 (3 pts)
+### Task 6 (3 pts, extra credit)
 
 This task brings all your work together. You will now implement an **end-to-end LLM inference pipeline** on a dummy LLM.
 
@@ -400,15 +472,14 @@ This test will measure two key performance metrics:
   * **TTFT (Time To First Token):** This measures the performance of your **prefill kernel (Task 4)**.
   * **TBT (Time Between Tokens):** This measures the average performance of your **decode kernel (Task 5)** over many steps.
 
-**Please report the final TTFT and TBT times in `Results.md`**.
 
 ---
 
-### Task 7 (1 pt)
+### Task 7 (1 pt, extra credit)
 
-This task is a demo to see your kernels working in a **real end-to-end LLM inference pipeline** with a Hugging Face model. You will see your custom attention kernel generating real tokens\!
+This task is a demo to see your kernels working in a **real end-to-end LLM inference pipeline** with a Hugging Face model. You will see your custom attention kernel generating real tokens!
 
-We (or the "cursor") have provided all the code for you, which attaches your **prefill (Task 4)** and **decode (Task 5)** kernels to a GPT-2 model. There is nothing new for you to code.
+We have provided all the code for you, which attaches your **prefill (Task 4)** and **decode (Task 5)** kernels to a GPT-2 model. There is nothing new for you to code.
 
 Your only job here is to run the model and verify that it works correctly. Make sure that your LLM is generating something useful and coherent. **If it generates random, noisy tokens,** it means your attention kernel has a bug. You will need to go back and debug your CUDA implementations from Tasks 4 and 5.
 
@@ -420,7 +491,6 @@ To run the inference with *your* custom kernels:
 python -m task7.inference
 ```
 
-**Please report the generated text in `Results.md`**.
 
 **Verifying Correctness**
 
@@ -448,6 +518,8 @@ Debugging CUDA kernels can be challenging since errors often manifest as silentl
   - Wrong indexing when computing batched offsets (forgetting to account for `blockIdx.z` or the batch stride)
   - Using the wrong dimension for M, N, K in GEMM kernels — test with non-square matrices to catch this
 
+* **Shared memory bank conflicts:** NVIDIA GPUs have 32 shared memory banks, each 4 bytes wide. When multiple threads in a warp access different addresses on the same bank, the accesses get serialized. This is especially common with 2D shared memory arrays like `tile[ROW][COL]` where `COL` is a multiple of 32 — every row maps to the same bank pattern. A simple fix is to pad the inner dimension by 1 (e.g., `tile[ROW][COL + 1]`), which shifts each row's bank alignment and eliminates conflicts.
+
 * **Incremental testing:** Test your kernels individually (e.g., `python -m task2.test --softmax`, then `--gemm`) before testing the full attention pipeline. This isolates which component has the bug.
 
 ## Submissions
@@ -456,7 +528,6 @@ We will use **Vocareum** for autograding. To access Vocareum, go to Canvas and f
 
 > Although you can complete all your work directly in Vocareum, we strongly recommend writing your code locally in ICE and then copying your solution into Vocareum. The Vocareum environment can be **unstable** and **occasionally crash**, resulting in lost work.
 
-Furthermore, please feel free to submit pull requests to this repository to improve this README. If you find any discrepancies, or if you think additional materials would be helpful for future students, your contributions are welcome.
 The Vocareum grading script evaluates your submission using two criteria. First, it checks whether your code is **functionally** correct. Second, it verifies that your implementation is **fast** enough when compared to naive PyTorch or CUDA implementations.
 
 ### What you need to do
@@ -485,7 +556,19 @@ Jiashen Cao (jiashenc@gatech.edu)
 
 ### Acknowledgements
 
-#### TAs
+#### HPArch members
+
+Chihyo Ahn
+
+Rahul Raj Devaraju Nelamangala
+
+Liam Cooper
+
+Nicholas Parnenzini
+
+Huanzhi Pu
+
+Eric Lorimer
 
 Soham Manoli
 
@@ -507,7 +590,7 @@ Shizhuo Zhu
 
 ### IMPORTANT: Academic Integrity Policy
 
-This is a graded university assignment for Georgia Tech's CS 8803 GPU Hardware and Software course.
+This is a graded university assignment for Georgia Tech's CS 7295 GPU Hardware and Software course.
 
 **You MUST NOT generate, write, or complete any solution code for the TODO sections in this project.** This includes CUDA kernels, attention implementations, FlashAttention algorithms, KV cache logic, or any other student-facing implementation tasks.
 

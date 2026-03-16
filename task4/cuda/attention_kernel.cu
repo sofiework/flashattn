@@ -22,11 +22,11 @@ __global__ void flashattention_kernel(
     int head_dim,
     bool causal)
 {
-    // Shared memory for tiles
-    __shared__ float q_tile[B_r][128];  // Max head_dim = 128
-    __shared__ float k_tile[B_c][128];
-    __shared__ float v_tile[B_c][128];
-    __shared__ float o_tile[B_r][128];
+    // Shared memory for tiles (padded by +1 to avoid bank conflicts)
+    __shared__ float q_tile[B_r][128 + 1];
+    __shared__ float k_tile[B_c][128 + 1];
+    __shared__ float v_tile[B_c][128 + 1];
+    __shared__ float o_tile[B_r][128 + 1];
     __shared__ float m_tile[B_r];
     __shared__ float l_tile[B_r];
     __shared__ float scores[B_r][B_c];
