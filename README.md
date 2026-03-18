@@ -32,6 +32,7 @@ For a better visual and conceptual understanding of self-attention, refer to the
 * [A video from 3B1B](https://youtu.be/eMlx5fFNoYc?si=H3rrO_hV5AlPeBlE)
 * [Another video from Welch Labs](https://youtu.be/0VLAoVGf_74?si=jMbV7i0ep0DSGR6a)
 * [FlashAttention V1 Deep Dive By Google Engineer | Fast and Memory-Efficient LLM Training](https://www.youtube.com/watch?v=_941CUKbL6A)
+* [Office hour slides](https://docs.google.com/presentation/d/1AwTX9vLirAkPHdfcWfKWQP-TzIyrX8kPA_t4YHKID6o/edit?usp=sharing)
 
 ### Causal attention
 
