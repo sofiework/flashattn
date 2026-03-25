@@ -229,7 +229,7 @@ Your specific task is to complete the **`attention_kernel.cu`** file by implemen
 | | `b_mat` | `(num_batch_heads, K, N)` | `K * N` |
 | | `out_mat` | `(num_batch_heads, M, N)` | `M * N` |
 
-The batch dimension is mapped to `blockIdx.z` in all kernels.
+The batch dimension is mapped to blockIdx.z in GEMM kernels and blockIdx.x in the softmax kernel.
 
 Steps to Follow:
 
