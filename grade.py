@@ -157,15 +157,29 @@ def grade_task7():
 def main():
     print("Grading Project")
     total_score=0
-    
+    task4_score=task5_score=0
+
     # Grade Tasks
     total_score += grade_task1()
     total_score += grade_task2()
     total_score += grade_task3()
-    total_score += grade_task4()
-    total_score += grade_task5()
+
+    task4_score = grade_task4()
+    total_score += task4_score
+
+    task5_score = grade_task5()
+    total_score += task5_score
+
     total_score += grade_task6()
-    total_score += grade_task7()
+    
+    # Task 7 is a free point if tasks 4 and 5 are successful
+    if (task5_score + task5_score) == 8:
+        print("Grading Task 7: Passed")
+        total_score += 1    # Task 7 is worth one point
+    else:
+        print("Grading Task 7: Failed")
+
+        
     return total_score                            
 
 
