@@ -525,29 +525,21 @@ Debugging CUDA kernels can be challenging since errors often manifest as silentl
 
 ## Submissions
 
-We will use **Vocareum** for autograding. To access Vocareum, go to Canvas and find the Vocareum menu on the lower left sidebar. If this is your first time using Vocareum, you may need to set up your account. After that, click the course name **CS 7295** and navigate to **Project 4**. This will open a Jupyter Notebook session. You can click the **JupyterLab** button in the top left corner to switch to JupyterLab.
+**4/5/2026 UPDATE** 
 
-> Although you can complete all your work directly in Vocareum, we strongly recommend writing your code locally in ICE and then copying your solution into Vocareum. The Vocareum environment can be **unstable** and **occasionally crash**, resulting in lost work.
+We will use PACE-ICE to grade this project. The grading script for the project (grade.py) is provided to you in the PR4 GitHub repository.  It will also be available on Ed in the PR4 Submission pinned thread to make it easily accessible to you.
 
-The Vocareum grading script evaluates your submission using two criteria. First, it checks whether your code is **functionally** correct. Second, it verifies that your implementation is **fast** enough when compared to naive PyTorch or CUDA implementations.
+After the project closes, all submissions will be downloaded and executed on ICE.  The score from this code run will your final grade.
 
-### What you need to do
+### Generate the Submission File
 
-1. Copy the code you wrote for the assignment into the corresponding files in Vocareum using JupyterLab.
-   For Parts 1 through 6 (Part 7 does not require coding), you should already know which files you modified. Fill in the appropriate `TODO` sections in each file.
+From the root directory of your project: 
+- Run the make_submission.sh script to create the .zip file to upload.
+- Upload the pr4_submission.zip file to Canvas from the project 4 page in Canvas.
 
-2. Open the main `.ipynb` file and run every cell from top to bottom.
-   You can do this by repeatedly clicking the **Run Cell** button until you reach the end. This step ensures that your code compiles and runs correctly. The full execution usually takes 5 to 10 minutes.
-
-   **Note:** For Parts 4 and 5, the grading container has limited GPU resources. You may encounter compilation errors if your code uses too much shared memory. This behavior is expected, as the grading environment is less powerful than the H100 GPU. If this happens, reduce the block size before launching the kernel.
-
-3. Click the **Submit** button in the top right corner.
-   This will upload your code to the grading container, where it will be evaluated automatically. The grading process can take 10 to 20 minutes. You can close the window and return later to check the logs and scores in Vocareum.
-
-If you run into issues that you cannot resolve on your own, please create a post on Ed or email me at euijun@gatech.edu.
+> Note: Failure to uplod the correct file will result in a significant point deduction.
 
 Finally, feel free to submit pull requests to this repository to improve this README. If you notice any errors or think additional explanations or resources would be helpful for future students, your contributions are welcome.
-
 
 ## Credits
 
