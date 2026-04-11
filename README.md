@@ -74,6 +74,9 @@ Follow these instructions to set up the project environment, especially if you a
 
 First, allocate an interactive session.
 
+> [!IMPORTANT]
+> **Make sure to allocate enough memory and CPU cores.** The model with hidden_dim=4096 can use over 20GB of memory. If insufficient memory is allocated, the process may be terminated with a Killed message and no other error output. 
+
 **From the command line (via SSH):**
 A typical allocation request for one GPU, 8 CPUs, and 128GB of memory for 4 hours looks like this:
 
