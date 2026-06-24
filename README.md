@@ -311,7 +311,7 @@ Here are a few notes about the Algorithm:
 
 > [!IMPORTANT]
 > **Typo in Paper!**
-> There is a well-known typo in Algorithm 1 of the original paper. Please refer to [this GitHub issue](https://github.com/Dao-AILab/flash-attention/issues/991) for the correction.
+> There is a well-known typo in Algorithm 1 of the FlashAttention-2 paper. Please refer to [this GitHub issue](https://github.com/Dao-AILab/flash-attention/issues/991) for the correction.
 
 **Tips for PyTorch Implementation:** The notation $\mathrm{diag}(v)A$ on lines 10 and 12 may look confusing. This represents a diagonal matrix (formed from vector $v$) multiplied by a dense matrix $A$. However, if you think about it closely, this is simply an element-wise multiplication per row. This is very easy to implement in PyTorch using broadcasting.
 
