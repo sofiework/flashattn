@@ -168,14 +168,14 @@ This project consists of 7 tasks and is worth 15 points. Tasks 3–7 are optiona
 | Task 6 | 3 pts (extra credit) | End-to-End LLM Inference | Build a complete inference pipeline handling both prefill and decode phases |
 | Task 7 | 1 pt (extra credit)  | GPT-2 Demo | Run and verify your custom kernels on a real GPT-2 model from Hugging Face |
 
-### Grading Policy for Spring 2026
+### Grading Policy for Summer 2026
 
-This is the first release of this project, and we understand it can be quite challenging. To accommodate this, we have structured the grading as follows:
+This is the second release of this project and we are on a shortened summer schedule, and we understand it can be quite challenging. To accommodate this, we have structured the grading as follows:
 
 - **Task 1** is worth **5 points** and **Task 2** is worth **10 points**. These two tasks are **required** and make up the full 15 points for this project.
 - **Tasks 3–7** are **optional** and worth a combined **15 extra credit points**. These extra points will be applied **ONLY** toward **Project 5**, effectively allowing you to skip some parts of Project 5 (20 points) if you earn the full amount.
 
-In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it. The combined total points for projects 4 and 5 are capped at 35 (15 and 20.)
+>In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it. The combined total points for projects 4 and 5 are capped at 35 (15 and 20.)
 
 ---
 
