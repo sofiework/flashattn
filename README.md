@@ -156,30 +156,22 @@ source .venv/bin/activate
 
 ## Tasks
 
-This project consists of 7 tasks and is worth 15 points. Tasks 3–7 are optional extra credit worth up to 15 additional points (see [Grading Policy](#grading-policy-for-spring-2026) below).
+This project consists of 7 tasks and is worth 20 points. 
 
 | Task | Points | Topic | Description |
 |------|--------|-------|-------------|
-| Task 1 | 5 pts | Naive Self-Attention (PyTorch) | Implement a naive, non-optimized multi-headed self-attention operation in PyTorch |
-| Task 2 | 10 pts | Naive Self-Attention (CUDA) | Implement softmax, GEMM_NT, GEMM_NN kernels and assemble them into a full attention operation |
-| Task 3 | 3 pts (extra credit) | FlashAttention 2 (PyTorch) | Implement the FlashAttention-2 algorithm (Algorithm 1) in PyTorch using tiled computation |
-| Task 4 | 4 pts (extra credit) | FlashAttention (CUDA) | Translate the tiled FlashAttention logic into a single fused CUDA kernel |
-| Task 5 | 4 pts (extra credit) | Decode Kernel + KV Cache | Implement KV cache update and a specialized FlashAttention decode kernel for token generation |
-| Task 6 | 3 pts (extra credit) | End-to-End LLM Inference | Build a complete inference pipeline handling both prefill and decode phases |
-| Task 7 | 1 pt (extra credit)  | GPT-2 Demo | Run and verify your custom kernels on a real GPT-2 model from Hugging Face |
+| Task 1 | 2 pts | Naive Self-Attention (PyTorch) | Implement a naive, non-optimized multi-headed self-attention operation in PyTorch |
+| Task 2 | 3 pts | Naive Self-Attention (CUDA) | Implement softmax, GEMM_NT, GEMM_NN kernels and assemble them into a full attention operation |
+| Task 3 | 3 pts | FlashAttention 2 (PyTorch) | Implement the FlashAttention-2 algorithm (Algorithm 1) in PyTorch using tiled computation |
+| Task 4 | 4 pts | FlashAttention (CUDA) | Translate the tiled FlashAttention logic into a single fused CUDA kernel |
+| Task 5 | 4 pts | Decode Kernel + KV Cache | Implement KV cache update and a specialized FlashAttention decode kernel for token generation |
+| Task 6 | 3 pts | End-to-End LLM Inference | Build a complete inference pipeline handling both prefill and decode phases |
+| Task 7 | 1 pt | GPT-2 Demo | Run and verify your custom kernels on a real GPT-2 model from Hugging Face |
 
-### Grading Policy for Summer 2026
-
-This is the second release of this project and we are on a shortened summer schedule, and we understand it can be quite challenging. To accommodate this, we have structured the grading as follows:
-
-- **Task 1** is worth **5 points** and **Task 2** is worth **10 points**. These two tasks are **required** and make up the full 15 points for this project.
-- **Tasks 3–7** are **optional** and worth a combined **15 extra credit points**. These extra points will be applied **ONLY** toward **Project 5**, effectively allowing you to skip some parts of Project 5 (20 points) if you earn the full amount.
-
->In other words, if you complete only Tasks 1 and 2 correctly, you will receive full marks for this project. If you go further and complete Tasks 3–7, you can earn up to 15 bonus points that carry over to Project 5. However, we strongly encourage you to complete the entire project. This is the most ML-relevant project in the course, and you will learn a great deal from it. The combined total points for projects 4 and 5 are capped at 35 (15 and 20.)
 
 ---
 
-### Task 1 (5 pts)
+### Task 1 (2 pts)
 
 Your first task is to implement a naive, non-optimized self-attention operation in PyTorch. This will help you become familiar with the multi-headed self-attention mechanism.
 
@@ -212,7 +204,7 @@ python -m task1.test
 
 ---
 
-### Task 2 (10 pts)
+### Task 2 (3 pts)
 
 In this task, you will implement a naive self-attention operation using a combination of PyTorch and your own custom **CUDA kernels**.
 
@@ -291,7 +283,7 @@ python -m task2.test --attention
 
 ---
 
-### Task 3 (3 pts, extra credit)
+### Task 3 (3 pts)
 
 Now, you will implement the **FlashAttention 2** algorithm in PyTorch. This task is similar in spirit to Task 1 (as it's a PyTorch-only implementation), but the logic is significantly more complex. Your goal here is to understand and implement the attention operation in a **tiled manner**, which is the key to its efficiency.
 
@@ -326,7 +318,7 @@ python -m task3.test
 
 ---
 
-### Task 4 (4 pts, extra credit)
+### Task 4 (4 pts)
 
 This is the most important task. You will now implement the full **FlashAttention** algorithm in PyTorch + CUDA.
 
@@ -367,7 +359,7 @@ The test code will verify the correctness of your output and then compare the pe
 
 ---
 
-### Task 5 (4 pts, extra credit)
+### Task 5 (4 pts)
 
 This task focuses on the second phase of LLM inference: **token generation (decode)**, and how to optimize it using a **KV Cache**.
 
@@ -449,7 +441,7 @@ Explore performance improvements to the decode stage by implementing a chunked F
 
 ---
 
-### Task 6 (3 pts, extra credit)
+### Task 6 (3 pts)
 
 This task brings all your work together. You will now implement an **end-to-end LLM inference pipeline** on a dummy LLM.
 
@@ -479,7 +471,7 @@ This test will measure two key performance metrics:
 
 ---
 
-### Task 7 (1 pt, extra credit)
+### Task 7 (1 pt)
 
 This task is a demo to see your kernels working in a **real end-to-end LLM inference pipeline** with a Hugging Face model. You will see your custom attention kernel generating real tokens!
 
@@ -527,8 +519,6 @@ Debugging CUDA kernels can be challenging since errors often manifest as silentl
 * **Incremental testing:** Test your kernels individually (e.g., `python -m task2.test --softmax`, then `--gemm`) before testing the full attention pipeline. This isolates which component has the bug.
 
 ## Submissions
-
-**4/5/2026 UPDATE** 
 
 We will use PACE-ICE to grade this project. The grading script for the project (grade.py) is provided to you in the PR4 GitHub repository.  It will also be available on Ed in the PR4 Submission pinned thread to make it easily accessible to you.
 
